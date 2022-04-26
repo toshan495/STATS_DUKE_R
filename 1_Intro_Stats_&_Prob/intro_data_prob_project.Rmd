@@ -1,0 +1,177 @@
+---
+title: "Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+Author: Toshan Majumdar
+
+Time: February, 2019
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+```{r load-data}
+#remove previously stored variables
+rm(list=ls())
+load("brfss2013.RData")
+```
+
+
+
+* * *
+
+## Part 1: Data
+
+**OFFICIAL DESCRIPTION:**
+
+The Behavioral Risk Factor Surveillance System (BRFSS) is a collaborative project between all of the states in
+the United States (US) and participating US territories and the Centers for Disease Control and Prevention (CDC).
+**Its objective is to collect uniform, state-specific data on preventive health practices and risk
+behaviors that are linked to chronic diseases, injuries, and preventable infectious diseases that affect the
+adult population.**The BRFSS is administered and supported by CDC's Population Health Surveillance Branch, under the Division
+of Population Health at the National Center for Chronic Disease Prevention and Health Promotion. 
+
+
+Health characteristics estimated from the BRFSS pertain to the non-institutionalized adult population, aged 18
+years or older, who reside in the US. In 2013, additional question sets were included as optional modules to
+provide a measure for several childhood health and wellness indicators, including asthma prevalence for people
+aged 17 years or younger
+
+
+Since 2011, BRFSS conducts both landline telephone- and cellular telephone-based surveys. In conducting the BRFSS landline
+telephone survey, interviewers collect data from a randomly selected adult in a household. In conducting the
+cellular telephone version of the BRFSS questionnaire, interviewers collect data from an adult who participates
+by using a cellular telephone and resides in a private residence or college housing.
+
+SOURCE: https://www.cdc.gov/brfss/
+
+**DATA DESCRIPTION:**
+
+The given dataset brfss2013 contans data regarding the BRFSS survey conducted among the adult population of US citizens in the year 2013 obtained through telephonic interviews. The data within the dataset:Brfss2013 is organized in such a way that **each row** represents the **responses of an individual participant** and **each columns** represents the **variables of interest related to participants** such as stateres(state residence of respondent), sleptim1(amount of sleep respondent has per day), income2(income of respondent).
+
+All variables in the dataset can be considered of one of the following types:
+
+1. Variables representing values from the **main/optional survey** whose values are either recorded responses from the respondents or is assigned the value:NA if the respondent refused to answer the survey question
+2. Computed variables including **weighted/calculated variables** which have been computed from the data given by the respondents as well as from other sources of information by the survey organisers and have not been answered by the respondents
+
+
+**SAMPLING/GENERIZABILITY:**
+
+The BRFSS Survey covers about 97.3% of the US households and thus can be generalized to the entire US adult population.The data collection used in the survey employs a randomised stratified sampling strategy based on the participants landline numbers as well as cellular numbers. First the entire sample is segregated into 2 strata (based on landline numbers): high population density and medium density population. Then random sampling is applied within strata based on random selection of cellular number codes.
+
+**CAUSALITY:**
+
+Since the entire dataset brfss2013.RData is gathered by an observational study, any strong associations among variables can only be considered correlations and not proof of causation. The bulk of information is also dependent upon the willingness of the participants to divulge information as well as the amount of truthfulness of the information disclosed and hence can be refuted and not completely reliable. There might also exist certain unobservable variables which could influence the values of the observed variables but have not been recorded in the dataset (confounders).
+
+* * *
+
+## Part 2: Research questions
+
+**Research quesion 1:**
+
+The main aim of this research question is to uncover whether there is any pattern between the smoking habits of participants and the general health of the participants according to the information they have revealed in the survey. Scientific studies have proven that frequent smoking has a detrimental effect on the health of peeple, however any negative correlation found among the variable:**genhlth** and **smoke100** cannot be taken as proof of causality as there may be other things affecting the general health of a person also such as drinking, exercise, medical healthcare,etc. and causal conclusions can only be drawn after conducting elaborate multi variable regressional analysis which is beyond the scpe of this project.
+
+**Research quesion 2:**
+
+The main aim of this research question is to uncover whether there is any pattern between the helath insurance coverage of participants and the general health of the participants according to the information they have revealed in the survey. Recent economic studies have cast doubt on the relation of health insurance with general health status in the US as a large portion of the population gets health insurance coverage but there has been a decline in general health of the population with the rise of lifestyle diseases such as diabetes, obesity, however any correlation found among the variables:**genhlth** and **nocov121** cannot be taken as proof of causality as there may be other things affecting the general health of a person also such as drinking, exercise, age,etc. and causal conclusions can only be drawn after conducting elaborate multi variable regressional analysis which is beyond the scope of this project.
+
+**Research quesion 3:**
+
+The main aim of this research question is to uncover whether there is any pattern between exercise habits of participants and the general health of the participants according to the information they have revealed in the survey. Scientific studies have proven that exercising improves cardiovascular functions as well a functioning of joints and muscles, however any positive correlation found among the variable:**genhlth** and **exerany2** cannot be taken as proof of causality as there may be other things affecting the general health of a person also such as drinking,diet, medical healthcare,etc. and causal conclusions can only be drawn after conducting elaborate multi variable regressional analysis which is beyond the scope of this project.
+
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+
+```{r}
+#dimensions of data: rows indicate individual cases, columns indicate variables
+dim(brfss2013)
+str(brfss2013)
+
+#histogram of NA counts among variables in dataset:brfss2013
+column.counts <- colSums(is.na(brfss2013),na.rm=FALSE)
+ggplot(NULL, aes(x=column.counts)) + geom_histogram()+xlab("NUMBER OF NA VALUES")+ylab("COUNT")
+
+
+#distribution of different types of variables in dataset:brfss2013
+my.class <- sapply(brfss2013, class)
+n<-sum(my.class=="numeric")
+i<-sum(my.class=="integer")
+f<-sum(my.class=="factor")
+cat("NUMERICAL VARIABLES:",n)
+cat("INTEGER VARIABLES:",i)
+cat("CATEGORICAL VARIABLES:",f)
+
+```
+
+**Research quesion 1:**
+Graphically find association between general health of persons(categorical variable:genhlth with 5 levels:Excellent, Very Good, Good, Fair, Poor) and their smoking habits(categorical variable:smoke100 of 2 levels: YES, NO)
+```{r}
+# select relevant variables from main dataset:brfss2013 and store it in data frame RQ1
+RQ1<- select(brfss2013,genhlth,smoke100) 
+
+# data cleaning- remove rows with missing data:NA
+RQ1 <- RQ1[complete.cases(RQ1),]
+
+# plot general health vs smoking
+g1<-ggplot(data=RQ1,aes(x=genhlth,fill=smoke100))
+g1+geom_bar(position="fill")+xlab("GENERAL HEALTH LEVELS")+ylab("PROPOTION SMOKERS")+ggtitle("genhlth VS smoke100")
+
+```
+
+###**Research question 1 conclusion:**
+From the bar graph plot it can be understood that the propotion of smokers increases among the various general health groups with the minimum propotion of smokers(around 30%) being in the Excellent general health group and maximum propotion of smokers(around 60%) being in the Poor general health group. However this pattern cannot be treated as proof for causation of smoking on detrimental health condition as there might be other factors influencing general health also.
+
+>
+
+**Research quesion 2:**
+Graphically find association between general health of persons(categorical variable:genhlth with 5 levels:Excellent, Very Good, Good, Fair, Poor) and their health insurance coverage(categorical variable:nocov121 of 2 levels: YES, NO)
+```{r}
+# select relevant variables from main dataset:brfss2013 and store it in data frame RQ2
+RQ2<- select(brfss2013,genhlth,nocov121)
+
+# data cleaning- remove rows with missing data:NA
+RQ2 <- RQ2[complete.cases(RQ2),]
+
+#plot general health vs health insurance coverage
+g2<-ggplot(data=RQ2,aes(x=genhlth,fill=nocov121))
+g2+geom_bar(position="fill")+xlab("GENERAL HEALTH LEVELS")+ylab("PROPOTION NO HEALTH COVERAGE")+ggtitle("genhlth VS nocov121")
+
+```
+
+###**Research question 2 conclusion:**
+The bar graph plot provides little evidence for the relation between health insurance coverage and the general health of participants. Most participants have health coverage and from the graph is can be inferred that the propotion of people with no helath coverage increses slightly among the general health groups with the minimum propotion of no health coverage people(less than 3%) in the Excellent general health group and the maximum propotion of no health coverage people(less than 6%) in the Poor general health group. Thus health care coverage seems to not have any impact on general health care though it cann be stated with certainity as there may be other factors influencing general health also.
+
+>
+
+**Research quesion 3:**
+Graphically find association between general health of persons(categorical variable:genhlth with 5 levels:Excellent, Very Good, Good, Fair, Poor) and their exercise habits(categorical variable:exerany2 of 2 levels: YES, NO)
+```{r}
+# select relevant variables from main dataset:brfss2013 and store it in data frame RQ3
+RQ3<- select(brfss2013,genhlth,exerany2)
+
+# data cleaning- remove rows with missing data:NA
+RQ3 <- RQ3[complete.cases(RQ3),]
+
+# plot general health vs exercise
+g3<-ggplot(data=RQ3,aes(x=genhlth,fill=exerany2))
+g3+geom_bar(position="fill")+xlab("GENERAL HEALTH LEVELS")+ylab("PROPOTION EXERCISE")+ggtitle("genhlth VS exerany2") 
+
+```
+
+>
+
+###**Research question 3 conclusion:**
+The bar graph plot shows a strong graphical pattern between exercise and general health of the participants. The amount of exercises is strongly correlated with increasing general health status with the propotion of peoeple involved in exercises maximum(around 87%) for the Excellent general health group and minimum(around 37%) for the Poor general health group. However such a strong correlation cannot ensure causation of exercise on general health as ther emay be other srtong factors affecting general health also.
